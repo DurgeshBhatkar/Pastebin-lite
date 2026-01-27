@@ -1,8 +1,8 @@
 require("dotenv").config();
 
 const express = require("express");
-const healthzRoute = require("./routes/healthz");
-const pastesRoute = require("./routes/pastes");
+const healthzRoute = require("./api/healthz");
+const pastesRoute = require("./api/pastes");
 const { getPaste } = require("./db/store");
 
 const app = express();
