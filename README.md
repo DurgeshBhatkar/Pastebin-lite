@@ -5,16 +5,55 @@ Small “Pastebin”‑like app with:
 - shareable URL to view paste
 - optional TTL expiry and/or max view limit
 
+This codebase is set up to deploy on **Vercel** (serverless functions) and uses **Upstash Redis** for persistence.
+
 ## Run locally
+
+1) Copy `.env.example` → `.env` and set your Upstash credentials:
+
+```bash
+UPSTASH_REDIS_REST_URL=...
+UPSTASH_REDIS_REST_TOKEN=...
+```
+
+2) Install and run:
 
 ```bash
 npm install
+npm start
+```
+
+For local development with auto-restart:
+
+```bash
 npm run dev
 ```
 
-Then open:
-- UI: `http://localhost:3000/`
+Then open (replace with your port if you set `PORT`):
+- UI: `http://localhost:3001/`
 - Health: `GET /api/healthz`
+
+## Deploy on Vercel
+
+Your repo is already on GitHub. Deploy it on Vercel as follows:
+
+1. Go to [vercel.com](https://vercel.com) and sign in with GitHub.
+2. Click **Add New…** → **Project**.
+3. **Import** your GitHub repo (select your Pastebin-Lite repo).
+4. Before deploying, set **Environment Variables** (or use the “Environment Variables” section on the import screen):
+   - `UPSTASH_REDIS_REST_URL` = your Upstash Redis REST URL  
+   - `UPSTASH_REDIS_REST_TOKEN` = your Upstash Redis REST token  
+   - `TEST_MODE` = `1` (so the grader can use `x-test-now-ms` for TTL tests)
+5. Click **Deploy**. Vercel will build and deploy; you’ll get a URL like `https://your-project.vercel.app`.
+
+After deploy:
+
+- **UI:** `https://your-project.vercel.app/`
+- **Health:** `https://your-project.vercel.app/api/healthz`
+- **Create paste:** `POST https://your-project.vercel.app/api/pastes`
+- **View paste:** `https://your-project.vercel.app/p/<id>`
+
+The `/p/:id` path is handled by a rewrite in `vercel.json` to `/api/p/:id`.
 
 ## API
 
@@ -74,7 +113,10 @@ If `TEST_MODE=1` is set, the request header `x-test-now-ms: <ms since epoch>` is
 
 ## Persistence layer
 
-This project uses **SQLite** stored in `db/pastes.db` for persistence across requests.
+This project uses **Upstash Redis** (REST API) for persistence across requests and across serverless instances on Vercel.
 
-If deploying to a serverless environment, a managed external datastore (Redis/KV/Postgres/etc.) is recommended, since local filesystem persistence may not survive across cold starts or instances.
-Deployed on Vercel
+## Design decisions
+
+- **Serverless API** under `api/` for Vercel; Express in `server.js` for local run.
+- **Redis Lua script** in the store for atomic view-count updates to avoid over-serving under concurrent requests.
+- **TEST_MODE + x-test-now-ms** applied at both paste creation and fetch so TTL grading is deterministic.

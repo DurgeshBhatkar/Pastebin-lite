@@ -1,11 +1,12 @@
-const express = require("express");
-const router = express.Router();
 const { pingDb } = require("../db/store");
+const { sendJson } = require("../lib/http");
 
-router.get("/", async (req, res) => {
+module.exports = async function handler(req, res) {
+  if (req.method !== "GET") {
+    return sendJson(res, 405, { error: "Method not allowed" });
+  }
+
   const ok = await pingDb();
   // Per spec: always 200 + JSON; "ok" should reflect persistence access.
-  res.status(200).json({ ok });
-});
-
-module.exports = router;
+  return sendJson(res, 200, { ok });
+};
