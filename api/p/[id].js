@@ -7,18 +7,35 @@ module.exports = async function handler(req, res) {
     return res.end("Method not allowed");
   }
 
-  // Vercel passes dynamic route params in req.query
-  // For /api/p/[id], the param is available as req.query.id
+  // Vercel passes dynamic route params in req.query when using rewrites
+  // For /api/p/[id], the param from rewrite /p/:id -> /api/p/:id is available as req.query.id
   let id = req.query?.id;
   
   // Fallback: parse from URL path if query param not available
+  // This handles cases where the parameter might not be in req.query
   if (!id && req.url) {
-    const parts = req.url.split("?")[0].split("/").filter(Boolean);
-    // Path is /api/p/:id, so id is the last segment
-    id = parts[parts.length - 1];
+    const urlPath = req.url.split("?")[0];
+    // Remove trailing slash if present
+    const cleanPath = urlPath.endsWith("/") ? urlPath.slice(0, -1) : urlPath;
+    const parts = cleanPath.split("/").filter(Boolean);
+    
+    // Path could be /api/p/:id or /p/:id depending on how it's accessed
+    // Find the segment after 'p'
+    const pIndex = parts.indexOf("p");
+    if (pIndex !== -1 && pIndex < parts.length - 1) {
+      id = parts[pIndex + 1];
+    } else if (parts.length > 0) {
+      // Last resort: use the last segment (for direct /api/p/:id access)
+      id = parts[parts.length - 1];
+    }
   }
 
-  if (!id || typeof id !== "string" || id.trim() === "") {
+  // Trim and validate the ID
+  if (id) {
+    id = String(id).trim();
+  }
+
+  if (!id || id === "") {
     return sendHtml(res, 404, "Paste not found");
   }
 
