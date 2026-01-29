@@ -1,0 +1,139 @@
+openapi: 3.0.3
+info:
+  title: Pastebin-Lite API
+  description: |
+    A simple Pastebin-like REST API built with Node.js, Express, and SQLite (or Redis).
+    Supports creating pastes with optional TTL (expiration) and max view limits.
+  version: 1.0.0
+servers:
+  - url: https://pastebin-lite-5y79f7e71-durgesh-bhatkars-projects.vercel.app
+    description: Production server
+  - url: http://localhost:3001
+    description: Local development server
+
+paths:
+  /api/healthz:
+    get:
+      summary: Health check
+      description: Check if the API is running and can access the persistence layer.
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+
+  /api/pastes:
+    post:
+      summary: Create a new paste
+      description: Creates a new paste with optional expiry and maximum view count.
+      operationId: createPaste
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  description: Paste text content
+                  example: "Hello, this is my paste"
+                ttl_seconds:
+                  type: integer
+                  description: Time (in seconds) until paste expires
+                  example: 3600
+                max_views:
+                  type: integer
+                  description: Maximum allowed views before deletion
+                  example: 5
+              required:
+                - content
+      responses:
+        '201':
+          description: Paste created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Paste unique ID
+                    example: "abcdef123"
+                  url:
+                    type: string
+                    description: Full shareable URL to view the paste
+                    example: "https://your-pastebin-lite-host.com/p/abcdef123"
+        '400':
+          description: Invalid request body
+
+  /api/pastes/{id}:
+    get:
+      summary: Fetch a paste (JSON)
+      description: Returns paste content with view and expiry details.
+      operationId: fetchPaste
+      parameters:
+        - name: id
+          in: path
+          description: Paste ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paste found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: string
+                    description: Paste text
+                  remaining_views:
+                    type: integer
+                    description: Views left
+                  expires_at:
+                    type: string
+                    format: date-time
+                    description: ISO timestamp of expiry
+        '404':
+          description: Paste not found or expired
+
+  /p/{id}:
+    get:
+      summary: View paste (HTML)
+      description: Render HTML page showing paste content.
+      operationId: viewPasteHTML
+      parameters:
+        - name: id
+          in: path
+          description: Paste ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: HTML page showing paste
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          description: Paste not found or expired
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Not found"
