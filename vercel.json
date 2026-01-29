@@ -1,6 +1,7 @@
 {
-  "rewrites": [
-    { "source": "/p/:id", "destination": "/api/p/:id" },
-    { "source": "/api/:path*", "destination": "/api/:path*" }
+  "routes": [
+    { "src": "/p/(.*)", "dest": "/api/p/$1" },
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "handle": "filesystem" }
   ]
 }
